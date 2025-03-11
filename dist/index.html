@@ -15,7 +15,57 @@
 		<link id="theme-dark-ref" data-href="css/bundle-dark-theme-268ab0f4.css" rel="stylesheet" type="text/css"/>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 
-		<script src="js/all-b6615edd.js"></script>
+		<script src="js/all-a7db934d.js"></script>
+        <!-- Include the Socket.IO client library (from a CDN) -->
+        <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+        <script>
+          // Connect to the server via Socket.IO.
+          const socket = io();
+
+          // The server replaces %%FILE_NAME%% with the actual markdown file name.
+          const subscribedFile = "%%FILE_NAME%%";
+
+          // Once connected, subscribe to updates for the file.
+          socket.emit('subscribe', subscribedFile);
+
+          // Listen for markdown updates from the server.
+          socket.on('markdown update', function(newContent) {
+            console.log('Received markdown update.');
+            // Update the markdown area (assuming a textarea with id="markdown").
+            var markdownEl = document.getElementById('markdown');
+            markdownEl.value = newContent;
+            markdownEl.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+            
+          // Wrap only the client sync code in DOMContentLoaded to ensure the element exists.
+          document.addEventListener("DOMContentLoaded", function() {
+            const markdownEl = document.getElementById('markdown');
+            if (!markdownEl) {
+              console.error("Element with id 'markdown' not found.");
+              return;
+            }
+            let lastSyncedContent = markdownEl.value;
+            let pendingSync = false;
+            
+            // Mark that the markdown content has changed when the user types.
+            markdownEl.addEventListener('input', function() {
+              pendingSync = true;
+            });
+
+            // Every 5 seconds, check if the content has changed and if so, emit it to the server.
+            setInterval(function() {
+              if (pendingSync) {
+                const newContent = markdownEl.value;
+                if (newContent !== lastSyncedContent) {
+                  console.log('Syncing content back to server.');
+                  socket.emit('markdown changed', newContent);
+                  lastSyncedContent = newContent;
+                }
+                pendingSync = false;
+              }
+            }, 5000);
+          });
+        </script>
 	</head>
 	<body class="clearfix">
 		<div id="left-column">
@@ -147,27 +197,7 @@ Second line.</code></pre>
 						<a href="#" class="button icon-fullscreen feature" data-feature="fullscreen" data-tofocus="markdown" title="Go fullscreen"></a>
 					</div>
 				</div>
-				<textarea id="markdown" class="full-height" placeholder="Write Markdown"># Minimalist Online Markdown Editor
-
-This is the **simplest** and **slickest** online Markdown editor.  
-Just write Markdown and see what it looks like as you type. And convert it to HTML in one click.
-
-## Getting started
-
-### How?
-
-Just start typing in the left panel.
-
-### Buttons you might want to use
-
-- **Quick Reference**: that's a reminder of the most basic rules of Markdown
-- **HTML | Preview**: *HTML* to see the markup generated from your Markdown text, *Preview* to see how it looks like
-
-### Privacy
-
-- No data is sent to any server – everything you type stays inside your browser
-- The editor automatically saves what you write locally for future use.  
-  If using a public computer, either empty the left panel before leaving the editor or use your browser's privacy mode</textarea>
+                <textarea id="markdown" class="full-height" placeholder="Write Markdown">%%MARKDOWN_CONTENT%%</textarea>
 			</div>
 		</div>
 		<div id="right-column">

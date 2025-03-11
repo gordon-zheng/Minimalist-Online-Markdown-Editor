@@ -133,7 +133,7 @@ $document.ready(function() {
 		// Restore the editor's state
 		restoreState: function(c) {
 			app.restoreState(function(restoredItems) {
-				if (restoredItems.markdown) editor.markdownSource.val(restoredItems.markdown);
+				// if (restoredItems.markdown) editor.markdownSource.val(restoredItems.markdown);
 				if (restoredItems.isSyncScrollDisabled != "y") editor.toggleFeature("sync-scroll");
 				if (restoredItems.isFullscreen == "y") editor.toggleFeature("fullscreen");
 				editor.switchToPanel(restoredItems.activePanel || "preview");
