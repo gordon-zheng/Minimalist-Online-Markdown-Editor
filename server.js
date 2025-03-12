@@ -63,7 +63,7 @@ app.get('/get-markdown', (req, res) => {
 
 // Endpoint to check the file lock status using the latest OS environment variable
 app.get('/lock-status', (req, res) => {
-  exec('echo $LOCK_PLANNING', (err, stdout, stderr) => {
+  exec('if [ -f ./system_config.sh ]; then . ./system_config.sh; fi; echo $LOCK_PLANNING', (err, stdout, stderr) => {
     if (err) {
       console.error('Error retrieving LOCK_PLANNING:', stderr);
       return res.status(500).json({ error: 'Error retrieving LOCK_PLANNING' });
