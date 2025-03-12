@@ -60,8 +60,29 @@ app.get('/get-markdown', (req, res) => {
   });
 });
 
-// Dictionary to store watchers per file name.
-const watchers = {};
+// Endpoint to check the file lock status
+app.get('/lock-status', (req, res) => {
+  const locked = process.env.LOCK_PLANNING && process.env.LOCK_PLANNING.toLowerCase() === 'true';
+  if (locked) {
+    console.log('Lock detected: Editing is disabled.');
+  } else {
+    console.log('Lock NOT detected: Editing is enabled.');
+  }
+  res.json({ locked });
+});
+
+// Endpoint to fetch the current markdown file content
+app.get('/file-content', (req, res) => {
+  const fileName = req.query.file || 'test.md';
+  const filePath = path.join(os.homedir(), fileName);
+  fs.readFile(filePath, 'utf8', (err, content) => {
+    if (err) {
+      console.error('Error reading file content:', err);
+      return res.status(500).json({ error: 'Error reading file content.' });
+    }
+    res.json({ content });
+  });
+});
 
 // Set up Socket.IO to handle dynamic file subscriptions.
 io.on('connection', (socket) => {
@@ -71,33 +92,6 @@ io.on('connection', (socket) => {
   socket.on('subscribe', (fileName) => {
     console.log(`Client subscribed to file: ${fileName}`);
     socket.subscribedFile = fileName;  // Store the subscription in the socket
-
-    const filePath = path.join(os.homedir(), fileName);
-
-    // If there's no watcher for this file yet, set one up.
-    if (!watchers[fileName]) {
-      watchers[fileName] = true; // Mark that a watcher is active for this file
-      fs.watchFile(filePath, { interval: 1000 }, (curr, prev) => {
-        console.log(`watchFile triggered for ${fileName}: curr.mtime = ${curr.mtime}, prev.mtime = ${prev.mtime}`);
-        if (curr.mtime !== prev.mtime) {
-          console.log(`File ${fileName} updated. Emitting update to subscribers.`);
-          fs.readFile(filePath, 'utf8', (err, newContent) => {
-            if (err) {
-              console.error('Error reading updated markdown file:', err);
-              return;
-            }
-            console.log(`New content for ${fileName} (first 100 chars): ${newContent.substring(0, 100)}`);
-            // Emit update only to sockets that subscribed to this file.
-            io.sockets.sockets.forEach((s) => {
-              if (s.subscribedFile === fileName) {
-                s.emit('markdown update', newContent);
-                console.log(`Emitted markdown update to socket with id ${s.id}`);
-              }
-            });
-          });
-        }
-      });
-    }
   });
 
   // Handle updates coming from the client (markdown changed event).
