@@ -119,7 +119,7 @@
         </script>
     </head>
     <body class="clearfix">
-        <div id="left-column">
+        <div id="left-column" style="position: relative;">
             <div id="top_panels_container">
                 <div class="top_panel" id="quick-reference">
                     <div class="close">×</div>
@@ -250,6 +250,13 @@ Second line.</code></pre>
                 </div>
                 <textarea id="markdown" class="full-height" placeholder="Write Markdown">%%MARKDOWN_CONTENT%%</textarea>
             </div>
+            <!-- Blocking dialog for file lock (applied to left side only) -->
+            <div id="lock-dialog" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+              <div style="background-color: #fff; padding: 20px; border-radius: 4px; text-align: center;">
+                <h2>File Locked</h2>
+                <p>This file is currently locked for editing by the planning agent.</p>
+              </div>
+            </div>
         </div>
         <div id="right-column">
             <div class="wrapper">
@@ -293,12 +300,5 @@ Second line.</code></pre>
             var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
           })();
         </script>
-    <!-- Blocking dialog for file lock -->
-    <div id="lock-dialog" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-      <div style="background-color: #fff; padding: 20px; border-radius: 4px; text-align: center;">
-        <h2>File Locked</h2>
-        <p>This file is currently locked for editing by the planning agent.</p>
-      </div>
-    </div>
     </body>
 </html>

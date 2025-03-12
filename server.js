@@ -4,6 +4,7 @@ const path = require('path');
 const os = require('os');
 const http = require('http');
 const socketIo = require('socket.io');
+const { exec } = require('child_process');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -60,15 +61,22 @@ app.get('/get-markdown', (req, res) => {
   });
 });
 
-// Endpoint to check the file lock status
+// Endpoint to check the file lock status using the latest OS environment variable
 app.get('/lock-status', (req, res) => {
-  const locked = process.env.LOCK_PLANNING && process.env.LOCK_PLANNING.toLowerCase() === 'true';
-  if (locked) {
-    console.log('Lock detected: Editing is disabled.');
-  } else {
-    console.log('Lock NOT detected: Editing is enabled.');
-  }
-  res.json({ locked });
+  exec('echo $LOCK_PLANNING', (err, stdout, stderr) => {
+    if (err) {
+      console.error('Error retrieving LOCK_PLANNING:', stderr);
+      return res.status(500).json({ error: 'Error retrieving LOCK_PLANNING' });
+    }
+    const latestLock = stdout.trim();
+    const locked = latestLock && latestLock.toLowerCase() === 'true';
+    if (locked) {
+      console.log('Lock detected: Editing is disabled.');
+    } else {
+      console.log('Lock NOT detected: Editing is enabled.');
+    }
+    res.json({ locked });
+  });
 });
 
 // Endpoint to fetch the current markdown file content
