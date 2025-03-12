@@ -71,9 +71,8 @@ app.get('/lock-status', (req, res) => {
     const latestLock = stdout.trim();
     const locked = latestLock && latestLock.toLowerCase() === 'true';
     if (locked) {
-      console.log('Lock detected: Editing is disabled.');
-    } else {
-      console.log('Lock NOT detected: Editing is enabled.');
+      const formattedTime = new Date().toLocaleString('en-US', { hour12: false });
+      console.log(`Lock detected. Editing is disabled: ${formattedTime}:`);
     }
     res.json({ locked });
   });
