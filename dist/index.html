@@ -25,8 +25,6 @@
           // The server replaces %%FILE_NAME%% with the actual markdown file name.
           const subscribedFile = "%%FILE_NAME%%";
 
-          // Once connected, subscribe to updates for the file.
-          socket.emit('subscribe', subscribedFile);
 
           // Wrap only the client sync code in DOMContentLoaded to ensure the element exists.
           document.addEventListener("DOMContentLoaded", function() {
@@ -39,15 +37,6 @@
             let pendingSync = false;
             let pollInProgress = false;
 
-            // Listen for markdown updates from the server.
-            socket.on('markdown update', function(newContent) {
-              console.log('Received markdown update.');
-              // Update the markdown area only if the user is not actively editing.
-              if (!pendingSync) {
-                markdownEl.value = newContent;
-                markdownEl.dispatchEvent(new Event('input', { bubbles: true }));
-              }
-            });
             
             // Mark that the markdown content has changed when the user types.
             markdownEl.addEventListener('input', function() {
@@ -66,11 +55,13 @@
                   if (data.locked) {
                     document.getElementById('lock-dialog').style.display = 'flex';
                     // When locked, pull the server file and override local changes
-                    fetch(`/file-content?file=${encodeURIComponent(subscribedFile)}`)
-                      .then(response => response.json())
-                      .then(fileData => {
-                        markdownEl.value = fileData.content;
-                        lastSyncedContent = fileData.content;
+                    fetch(`/get-file?file=${encodeURIComponent(subscribedFile)}`)
+                      .then(response => response.text())
+                      .then(fileContent => {
+                        console.log('Updating client with new content from server due to lock.');
+                        markdownEl.value = fileContent;
+                        lastSyncedContent = fileContent;
+                        markdownEl.dispatchEvent(new Event('input', { bubbles: true }));
                         pendingSync = false;
                         pollInProgress = false;
                       })
@@ -85,20 +76,20 @@
                       const newContent = markdownEl.value;
                       if (newContent !== lastSyncedContent) {
                         console.log('Syncing content back to server.');
-                        socket.emit('markdown changed', newContent);
+                        socket.emit('markdown changed', { file: subscribedFile, content: newContent });
                         lastSyncedContent = newContent;
                       }
                       pendingSync = false;
                       pollInProgress = false;
                     } else {
                       // No user changes, so pull file content to stay in sync
-                      fetch(`/file-content?file=${encodeURIComponent(subscribedFile)}`)
-                        .then(response => response.json())
-                        .then(fileData => {
-                          if (fileData.content !== lastSyncedContent) {
+                      fetch(`/get-file?file=${encodeURIComponent(subscribedFile)}`)
+                        .then(response => response.text())
+                        .then(fileContent => {
+                          if (fileContent !== lastSyncedContent) {
                             console.log('Updating client with new content from server.');
-                            markdownEl.value = fileData.content;
-                            lastSyncedContent = fileData.content;
+                            markdownEl.value = fileContent;
+                            lastSyncedContent = fileContent;
                             markdownEl.dispatchEvent(new Event('input', { bubbles: true }));
                           }
                           pollInProgress = false;

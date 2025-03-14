@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>GFH Source Code Viewer</title>
+    <!-- Import map to resolve bare module specifiers -->
+    <script type="importmap">
+        {
+            "imports": { "codemirror/": "https://deno.land/x/codemirror_esm@v6.0.1/esm/" }
+        }
+    </script>
+    <style>
+        /* --- Left Column --- */
+        #left-column {
+          width: 30%;
+          background-color: #f4f4f4;
+          box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+          flex-shrink: 0;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* --- Project Selector --- */
+        #projectSelector {
+          padding: 10px;
+          border-bottom: 1px solid #ccc; /* separator line */
+        }
+
+        /* --- File Tree --- */
+        #fileTree {
+          padding: 10px;
+          font-family: sans-serif;
+          font-size: 14px;
+          flex: 1; /* let the file tree fill remaining vertical space */
+          overflow-y: auto; /* scroll if it gets too tall */
+          margin: 0;
+        }
+
+        #fileTree ul {
+          list-style-type: none; /* remove bullet points */
+          padding-left: 20px;    /* indentation for nested items */
+          margin: 0;
+        }
+
+        /* Folder and file icons (simple text icons) */
+        .folder::before {
+          content: "📁 ";
+        }
+
+        .file::before {
+          content: "📄 ";
+        }
+
+        /* Optional: to show/hide child lists (collapsible style) */
+        .hidden {
+          display: none;
+        }
+        
+        /* Remove default margins on the html/body */
+        html, body {
+          margin: 0;
+          padding: 0;
+          height: 100%;
+        }
+
+        #container {
+          display: flex;
+          height: 100vh; /* Full viewport height */
+          margin: 0;
+          padding: 0;
+        }
+
+        #right-column {
+          width: 70%;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          margin: 0;
+          padding: 0;      /* Remove extra spacing so columns touch */
+          overflow: hidden;
+        }
+
+        /* Position the file input in normal flow with optional margin */
+        #fileInput {
+          margin: 10px; /* Adjust or remove if you want zero spacing at top */
+        }
+
+        /* Optional: margin for the heading */
+        h1 {
+          margin: 10px;
+        }
+
+        /* Make the editor fill all remaining space in the right column */
+        #editor {
+          flex: 1;
+          border: 1px solid #ccc;
+          min-height: 0;  /* Allows the editor to shrink properly within a flex container */
+          margin: 0 10px 10px 2px; /* Some spacing around the editor; remove if not wanted */
+          box-sizing: border-box;
+          overflow: auto;      /* Let the editor itself scroll */
+        }
+      </style>
+  </head>
+  <body>
+    <div id="container">
+        <div id="left-column">
+          <!-- Project Selector Dropdown -->
+          <div id="projectSelector">
+            <label for="projectSelect">Select Project:</label>
+            <select id="projectSelect">
+              <option value="mind_of_god">Mind_of_God</option>
+              <option value="image_of_god">Image_of_God</option>
+              <option value="creation_of_god">Creation_of_God</option>
+            </select>
+          </div>
+
+          <!-- File Tree -->
+          <div id="fileTree">
+            <ul>
+              <li>
+                <span class="folder">~</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div id="right-column">
+          <input type="file" id="fileInput" />
+          <h1>GFH Source Code Viewer</h1>
+          <div id="editor" style="border: 1px solid #ccc; min-height: 300px; height: auto;"></div>
+        </div>
+    </div>
+    <script type="module">
+      import { EditorState } from "codemirror/state/dist/index.js";
+      import { EditorView, basicSetup } from "codemirror/codemirror/dist/index.js";
+      import { javascript } from "codemirror/lang-javascript/dist/index.js";
+      import { html } from "codemirror/lang-html/dist/index.js";
+      import { json } from "codemirror/lang-json/dist/index.js";
+      import { java } from "codemirror/lang-java/dist/index.js";
+      import { python } from "codemirror/lang-python/dist/index.js";
+      import { xml } from "codemirror/lang-xml/dist/index.js";
+      import { css } from "codemirror/lang-css/dist/index.js";
+      import { php } from "codemirror/lang-php/dist/index.js";
+      import { markdown } from "codemirror/lang-markdown/dist/index.js";
+      import { sql } from "codemirror/lang-sql/dist/index.js";
+      
+      // Create an initial empty editor
+      const state = EditorState.create({
+        doc: "",
+        extensions: [basicSetup, javascript(), html(), json(), java(), python(), xml(), css(), php(), markdown(), sql(),
+                     EditorView.editable.of(true) ]
+      });
+      const view = new EditorView({
+        state,
+        parent: document.getElementById("editor")
+      });
+
+      // Load file using the FileReader API
+      const fileInput = document.getElementById("fileInput");
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target.result;
+          console.log("Loaded file content:", content);
+          view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: content }
+          });
+        };
+        reader.readAsText(file);
+      });
+        
+      document.addEventListener("DOMContentLoaded", () => {
+        // Single fetch for markdown content
+        fetch("/get-file?file=test.md")
+          .then(response => response.text())
+          .then(mdContent => {
+            view.dispatch({
+              changes: { from: 0, to: view.state.doc.length, insert: mdContent }
+            });
+            console.log("Fetching markdown successful");
+          })
+          .catch(error => console.error("Error fetching markdown content:", error));
+
+        // Define helper function to attach file tree listeners
+        function attachFileTreeListeners() {
+          document.querySelectorAll("#fileTree .folder").forEach(folder => {
+            folder.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const childUl = folder.parentElement.querySelector("ul");
+              if (childUl) {
+                childUl.classList.toggle("hidden");
+              }
+            });
+          });
+          document.querySelectorAll("#fileTree .file").forEach(fileSpan => {
+            const fullPath = fileSpan.getAttribute("data-file-path") || fileSpan.textContent.trim();
+            const baseName = fullPath.split("/").pop() || fullPath;
+            fileSpan.textContent = baseName;
+            fileSpan.setAttribute("data-file-path", fullPath);
+            fileSpan.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const filePath = fileSpan.getAttribute("data-file-path");
+              const selectedContainer = document.getElementById("projectSelect").value;
+              fetch("/get-docker-file?file=" + encodeURIComponent(filePath) + "&dockerId=" + encodeURIComponent(selectedContainer))
+                .then(response => response.text())
+                .then(fileContent => {
+                  view.dispatch({
+                    changes: { from: 0, to: view.state.doc.length, insert: fileContent }
+                  });
+                  console.log("File content loaded successfully for:", filePath);
+                })
+                .catch(error => console.error("Error fetching file content for", filePath, ":", error));
+            });
+          });
+        }
+
+        // Function to update the file tree
+        function updateFileTree() {
+          const selectedContainer = document.getElementById("projectSelect").value;
+          fetch("/get-file-tree-html?container=" + encodeURIComponent(selectedContainer))
+            .then(response => response.text())
+            .then(htmlSnippet => {
+              document.getElementById("fileTree").innerHTML = htmlSnippet;
+              console.log("File tree updated successfully.");
+              attachFileTreeListeners();
+            })
+            .catch(error => console.error("Error fetching file tree HTML:", error));
+        }
+
+        // Initial file tree update
+        updateFileTree();
+
+        // Update file tree on project selection change
+        document.getElementById("projectSelect").addEventListener("change", () => {
+          updateFileTree();
+          console.log("File tree updated successfully on container change.");
+        });
+      });
+    </script>
+  </body>
+</html>
