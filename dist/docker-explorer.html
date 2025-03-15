@@ -137,7 +137,10 @@
           </div>
         </div>
         <div id="right-column">
-          <p id="currentFileDisplay" style="font-size: 16px; margin: 10px;">No File Currently Selected</p>
+          <div id="top-bar" style="display: flex; justify-content: space-between; align-items: center; margin: 10px;">
+            <p id="currentFileDisplay" style="font-size: 16px; margin: 0;">No File Currently Selected</p>
+            <button id="saveButton" style="font-size: 16px;">Save</button>
+          </div>
           <div id="lockBar" style="display:none; background-color: red; color: white; padding: 5px; text-align: center;">
             File is locked and is being reviewed by the Ai-Agent.
           </div>
@@ -204,7 +207,7 @@
           })
           .catch(err => console.error('Error fetching container list:', err));
 
-        let currentFile = "test.md";
+        let currentFile = null;
         let isLocked = false;
 
         view.dom.addEventListener("beforeinput", (e) => {
@@ -229,9 +232,13 @@
             const baseName = fullPath.split("/").pop() || fullPath;
             fileSpan.textContent = baseName;
             fileSpan.setAttribute("data-file-path", fullPath);
-          fileSpan.addEventListener("click", (e) => {
+            fileSpan.addEventListener("click", (e) => {
               e.stopPropagation();
               const filePath = fileSpan.getAttribute("data-file-path");
+              if (!filePath) {
+                console.warn("No file selected, skipping load.");
+                return;
+              }
               // Update the global variable to store the current file
               currentFile = filePath;
               const selectedContainer = document.getElementById("projectSelect").value;
@@ -275,52 +282,62 @@
           fetch('/lock-status')
             .then(response => response.json())
             .then(data => {
-              if (data.locked && !isLocked) {
-                isLocked = true;
-                console.log("File is locked, updating UI to read-only.");
-                // Show the red lock bar
-                document.getElementById('lockBar').style.display = 'block';
-                // Show the light grey overlay on the editor
-                document.getElementById('editorOverlay').style.display = 'block';
-                // Update the file tree
-                updateFileTree();
-                // Fetch and update the editor content for the currently viewed file using the /get-docker-file endpoint
-                const selectedContainer = document.getElementById("projectSelect").value;
-                fetch("/get-docker-file?file=" + encodeURIComponent(currentFile) + "&dockerId=" + encodeURIComponent(selectedContainer))
-                  .then(response => response.text())
-                  .then(fetchedContent => {
-                    const currentContent = view.state.doc.toString();
-                    if (currentContent !== fetchedContent) {
-                      // Preserve scroll position
-                      const scrollPos = view.scrollDOM.scrollTop;
-                      view.dispatch({
-                        changes: { from: 0, to: view.state.doc.length, insert: fetchedContent }
-                      });
-                      view.scrollDOM.scrollTop = scrollPos;
-                      console.log("Editor content updated due to file lock.");
-                    } else {
-                      console.log("No changes detected in editor content.");
-                    }
-                  })
-                  .catch(err => console.error("Error fetching file content during lock check:", err));
+              if (data.locked) {
+                if (!isLocked) {
+                  isLocked = true;
+                  console.log('File is locked, updating UI to read-only.');
+                  // Show the red lock bar
+                  document.getElementById('lockBar').style.display = 'block';
+                  // Show the light grey overlay on the editor
+                  document.getElementById('editorOverlay').style.display = 'block';
+                  document.getElementById('saveButton').disabled = true;
+                  updateFileTree();
+                  if (currentFile) {
+                    const selectedContainer = document.getElementById('projectSelect').value;
+                    fetch("/get-docker-file?file=" + encodeURIComponent(currentFile) + "&dockerId=" + encodeURIComponent(selectedContainer))
+                      .then(response => response.text())
+                      .then(fetchedContent => {
+                        const currentContent = view.state.doc.toString();
+                        if (currentContent !== fetchedContent) {
+                          const scrollPos = view.scrollDOM.scrollTop;
+                          view.dispatch({
+                            changes: { from: 0, to: view.state.doc.length, insert: fetchedContent }
+                          });
+                          view.scrollDOM.scrollTop = scrollPos;
+                          console.log('Editor content updated due to file lock.');
+                        } else {
+                          console.log('No changes detected in editor content.');
+                        }
+                      })
+                      .catch(err => console.error('Error fetching file content during lock check:', err));
+                  } else {
+                    console.warn('No file selected; skipping file update during lock check.');
+                  }
+                }
               } else {
-                isLocked = false;
-                console.log("File is unlocked, restoring editor.");
-                // Hide the red lock bar
-                document.getElementById('lockBar').style.display = 'none';
-                // Hide the editor overlay
-                document.getElementById('editorOverlay').style.display = 'none';
-                console.log('File synced is going to be call next');
-                isDirty = syncIfDirty(isDirty, currentFile);
+                if (isLocked) {
+                  isLocked = false;
+                  console.log('File is unlocked, restoring editor.');
+                  document.getElementById('lockBar').style.display = 'none';
+                  document.getElementById('editorOverlay').style.display = 'none';
+                  document.getElementById('saveButton').disabled = false;
+                  console.log('File synced is going to be call next');
+                  isDirty = syncIfDirty(isDirty, currentFile);
+                }
               }
             })
-            .catch(err => console.error("Error checking lock status:", err));
+            .catch(err => console.error('Error checking lock status:', err));
         }, 3000);
+
+        document.getElementById('saveButton').addEventListener('click', () => {
+          isDirty = true;
+          syncIfDirty(isDirty, currentFile);
+        });
       });
 
       function syncIfDirty(isDirty, currentFile) {
         console.log('File synced Called');
-        if (!isDirty) return;
+        if (!currentFile || !isDirty) return;
         const currentDoc = view.state.doc.toString();
         const selectedContainer = document.getElementById('projectSelect').value;
 
