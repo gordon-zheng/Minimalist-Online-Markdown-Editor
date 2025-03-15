@@ -6,11 +6,18 @@ const http = require('http');
 const socketIo = require('socket.io');
 const { exec } = require('child_process');
 const util = require('util');
+const { spawn } = require('child_process');
 const readFile = util.promisify(fs.readFile);
 const execPromise = util.promisify(exec);
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+const fileTreePaths = ['/tmp', '/home/GOD', '/home/GOD/core'];
+const containerList = ["mind_of_god", "image_of_god", "creation_of_god"];
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 // Helper function to retrieve the file tree from a Docker container using 'tree -J'
 async function getContainerFileTreeAsync(containerName, folderPath) {
@@ -136,12 +143,17 @@ app.get('/get-file-tree-html', asyncHandler(async (req, res) => {
     return res.status(400).send('Missing container parameter.');
   }
   const containerName = req.query.container.trim();
-  const treeData1 = await getContainerFileTreeAsync(containerName, '/tmp/');
-  const treeData2 = await getContainerFileTreeAsync(containerName, '/home/GOD/');
-  const node1 = { name: '/tmp', type: 'directory', contents: treeData1 };
-  const node2 = { name: '/home/GOD', type: 'directory', contents: treeData2 };
-  const combinedNodes = [node1, node2];
-  const fileTreeHTML = renderFileTreeHTML(combinedNodes, 0);
+  const nodes = [];
+
+  // Loop through each path defined in fileTreePaths
+  for (const p of fileTreePaths) {
+    const treeData = await getContainerFileTreeAsync(containerName, p);
+    // Remove trailing slash for display if present
+    const displayName = p.endsWith('/') ? p.slice(0, -1) : p;
+    nodes.push({ name: displayName, type: 'directory', contents: treeData });
+  }
+
+  const fileTreeHTML = renderFileTreeHTML(nodes, 0);
   res.type('text/html').send(fileTreeHTML);
 }));
 
@@ -153,11 +165,63 @@ app.get('/get-docker-file', asyncHandler(async (req, res) => {
   
   const filePath = req.query.file.trim();
   const dockerId = req.query.dockerId.trim();
+  // Use spawn with arguments to avoid shell interpolation
+  const dockerProcess = spawn('docker', ['exec', dockerId, 'cat', filePath], {
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+  let stdoutData = '';
+  let stderrData = '';
+  dockerProcess.stdout.on('data', (data) => {
+    stdoutData += data.toString();
+  });
+  dockerProcess.stderr.on('data', (data) => {
+    stderrData += data.toString();
+  });
   
-  const cmd = `docker exec ${dockerId} cat ${filePath}`;
-  console.log(`Executing command: ${cmd}`);
-  const { stdout } = await execPromise(cmd, { maxBuffer: 50 * 1024 * 1024 });
-  res.type('text/plain').send(stdout);
+  dockerProcess.on('close', (code) => {
+    if (code !== 0) {
+      console.error(`Error executing docker exec: ${stderrData}`);
+      return res.status(500).send(`Error retrieving file: ${stderrData}`);
+    }
+    res.type('text/plain').send(stdoutData);
+  });
+}));
+
+// New POST endpoint to save file content to a Docker container
+app.post('/save-docker-file', asyncHandler(async (req, res) => {
+  const { file, dockerId, content } = req.body;
+
+  if (!file || !dockerId || typeof content === 'undefined') {
+    return res.status(400).send('Missing file, dockerId, or content parameter.');
+  }
+
+  // Spawn the docker exec process without using a shell
+  const dockerProcess = spawn('docker', ['exec', '-i', dockerId, 'sh', '-c', `cat > ${file}`], {
+    stdio: ['pipe', 'ignore', 'pipe']
+  });
+
+  // Pipe the content to the docker process's stdin
+  dockerProcess.stdin.write(content);
+  dockerProcess.stdin.end();
+
+  let errorData = '';
+  dockerProcess.stderr.on('data', (data) => {
+    errorData += data.toString();
+  });
+
+  dockerProcess.on('close', (code) => {
+    if (code !== 0) {
+      console.error(`Error saving file: ${errorData}`);
+      return res.status(500).send(`Error saving file: ${errorData}`);
+    }
+    console.log(`File ${file} updated inside Docker container: ${dockerId}`);
+    res.status(200).send('File saved successfully');
+  });
+}));
+
+// Endpoint to return the container list
+app.get('/get-container-list', asyncHandler(async (req, res) => {
+  res.json(containerList);
 }));
 
 // Set up Socket.IO to handle dynamic file subscriptions.

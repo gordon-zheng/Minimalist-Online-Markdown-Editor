@@ -101,6 +101,19 @@
           box-sizing: border-box;
           overflow: auto;      /* Let the editor itself scroll */
         }
+
+        #editorContainer {
+          position: relative;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: auto;
+        }
+
+        .lockedEditor .cm-scroller,
+        .lockedEditor .cm-content {
+          background-color: lightgrey !important;
+        }
       </style>
   </head>
   <body>
@@ -110,9 +123,7 @@
           <div id="projectSelector">
             <label for="projectSelect">Select Project:</label>
             <select id="projectSelect">
-              <option value="mind_of_god">Mind_of_God</option>
-              <option value="image_of_god">Image_of_God</option>
-              <option value="creation_of_god">Creation_of_God</option>
+              <option value="">Loading...</option>
             </select>
           </div>
 
@@ -126,9 +137,14 @@
           </div>
         </div>
         <div id="right-column">
-          <input type="file" id="fileInput" />
-          <h1>GFH Source Code Viewer</h1>
-          <div id="editor" style="border: 1px solid #ccc; min-height: 300px; height: auto;"></div>
+          <p id="currentFileDisplay" style="font-size: 16px; margin: 10px;">No File Currently Selected</p>
+          <div id="lockBar" style="display:none; background-color: red; color: white; padding: 5px; text-align: center;">
+            File is locked and is being reviewed by the Ai-Agent.
+          </div>
+          <div id="editorContainer">
+            <div id="editor" style="border: 1px solid #ccc; min-height: 300px; height: auto;"></div>
+            <div id="editorOverlay" style="display:none; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background-color: rgba(190,190,190,0.3); pointer-events: none; z-index: 10;"></div>
+          </div>
         </div>
     </div>
     <script type="module">
@@ -145,45 +161,57 @@
       import { markdown } from "codemirror/lang-markdown/dist/index.js";
       import { sql } from "codemirror/lang-sql/dist/index.js";
       
+      let originalContent = "";
+      let isDirty = false;
+
       // Create an initial empty editor
+      const updateListener = EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          const currentDoc = view.state.doc.toString();
+          isDirty = (currentDoc !== originalContent);
+        }
+      });
       const state = EditorState.create({
         doc: "",
         extensions: [basicSetup, javascript(), html(), json(), java(), python(), xml(), css(), php(), markdown(), sql(),
-                     EditorView.editable.of(true) ]
+                      updateListener,
+                      EditorView.editable.of(true) ]
       });
       const view = new EditorView({
         state,
         parent: document.getElementById("editor")
       });
 
-      // Load file using the FileReader API
-      const fileInput = document.getElementById("fileInput");
-      fileInput.addEventListener("change", () => {
-        const file = fileInput.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const content = e.target.result;
-          console.log("Loaded file content:", content);
-          view.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: content }
-          });
-        };
-        reader.readAsText(file);
-      });
-        
       document.addEventListener("DOMContentLoaded", () => {
-        // Single fetch for markdown content
-        fetch("/get-file?file=test.md")
-          .then(response => response.text())
-          .then(mdContent => {
-            view.dispatch({
-              changes: { from: 0, to: view.state.doc.length, insert: mdContent }
+        // Fetch container list from the server and populate the project select dropdown
+        fetch('/get-container-list')
+          .then(response => response.json())
+          .then(containerList => {
+            const select = document.getElementById('projectSelect');
+            // Clear existing options
+            select.innerHTML = '';
+            containerList.forEach(container => {
+              const option = document.createElement('option');
+              option.value = container;
+              option.textContent = container;
+              select.appendChild(option);
             });
-            console.log("Fetching markdown successful");
+            // If container list is not empty, default to the first container and update the file tree
+            if (containerList.length > 0) {
+              select.value = containerList[0];
+              updateFileTree();
+            }
           })
-          .catch(error => console.error("Error fetching markdown content:", error));
+          .catch(err => console.error('Error fetching container list:', err));
+
+        let currentFile = "test.md";
+        let isLocked = false;
+
+        view.dom.addEventListener("beforeinput", (e) => {
+          if (isLocked) {
+            e.preventDefault();
+          }
+        });
 
         // Define helper function to attach file tree listeners
         function attachFileTreeListeners() {
@@ -201,13 +229,19 @@
             const baseName = fullPath.split("/").pop() || fullPath;
             fileSpan.textContent = baseName;
             fileSpan.setAttribute("data-file-path", fullPath);
-            fileSpan.addEventListener("click", (e) => {
+          fileSpan.addEventListener("click", (e) => {
               e.stopPropagation();
               const filePath = fileSpan.getAttribute("data-file-path");
+              // Update the global variable to store the current file
+              currentFile = filePath;
               const selectedContainer = document.getElementById("projectSelect").value;
+              // Update the current file display text to include the container name
+              document.getElementById("currentFileDisplay").textContent = selectedContainer + ": " + filePath;
               fetch("/get-docker-file?file=" + encodeURIComponent(filePath) + "&dockerId=" + encodeURIComponent(selectedContainer))
                 .then(response => response.text())
                 .then(fileContent => {
+                  originalContent = fileContent;
+                  isDirty = false;
                   view.dispatch({
                     changes: { from: 0, to: view.state.doc.length, insert: fileContent }
                   });
@@ -231,15 +265,88 @@
             .catch(error => console.error("Error fetching file tree HTML:", error));
         }
 
-        // Initial file tree update
-        updateFileTree();
-
         // Update file tree on project selection change
         document.getElementById("projectSelect").addEventListener("change", () => {
           updateFileTree();
           console.log("File tree updated successfully on container change.");
         });
+        // Poll for file lock status every 3 seconds
+        setInterval(() => {
+          fetch('/lock-status')
+            .then(response => response.json())
+            .then(data => {
+              if (data.locked && !isLocked) {
+                isLocked = true;
+                console.log("File is locked, updating UI to read-only.");
+                // Show the red lock bar
+                document.getElementById('lockBar').style.display = 'block';
+                // Show the light grey overlay on the editor
+                document.getElementById('editorOverlay').style.display = 'block';
+                // Update the file tree
+                updateFileTree();
+                // Fetch and update the editor content for the currently viewed file using the /get-docker-file endpoint
+                const selectedContainer = document.getElementById("projectSelect").value;
+                fetch("/get-docker-file?file=" + encodeURIComponent(currentFile) + "&dockerId=" + encodeURIComponent(selectedContainer))
+                  .then(response => response.text())
+                  .then(fetchedContent => {
+                    const currentContent = view.state.doc.toString();
+                    if (currentContent !== fetchedContent) {
+                      // Preserve scroll position
+                      const scrollPos = view.scrollDOM.scrollTop;
+                      view.dispatch({
+                        changes: { from: 0, to: view.state.doc.length, insert: fetchedContent }
+                      });
+                      view.scrollDOM.scrollTop = scrollPos;
+                      console.log("Editor content updated due to file lock.");
+                    } else {
+                      console.log("No changes detected in editor content.");
+                    }
+                  })
+                  .catch(err => console.error("Error fetching file content during lock check:", err));
+              } else {
+                isLocked = false;
+                console.log("File is unlocked, restoring editor.");
+                // Hide the red lock bar
+                document.getElementById('lockBar').style.display = 'none';
+                // Hide the editor overlay
+                document.getElementById('editorOverlay').style.display = 'none';
+                console.log('File synced is going to be call next');
+                isDirty = syncIfDirty(isDirty, currentFile);
+              }
+            })
+            .catch(err => console.error("Error checking lock status:", err));
+        }, 3000);
       });
+
+      function syncIfDirty(isDirty, currentFile) {
+        console.log('File synced Called');
+        if (!isDirty) return;
+        const currentDoc = view.state.doc.toString();
+        const selectedContainer = document.getElementById('projectSelect').value;
+
+        // Example of sending this to a server route
+        // that would do `docker exec` or `docker cp` to update the container.
+        const params = new URLSearchParams();
+        params.append('file', currentFile);
+        params.append('dockerId', selectedContainer);
+        params.append('content', currentDoc);
+
+        fetch('/save-docker-file', {
+          method: 'POST',
+          body: params
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to save file to Docker container');
+            return true;
+          }
+          // Reset dirty state
+          originalContent = currentDoc;
+          console.log('File synced to container successfully');
+          return false;
+        })
+        .catch(err => console.error('Error syncing file to container:', err));
+      }
     </script>
   </body>
 </html>
