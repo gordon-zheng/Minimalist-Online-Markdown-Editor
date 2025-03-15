@@ -10,145 +10,192 @@
         }
     </script>
     <style>
-        /* --- Left Column --- */
-        #left-column {
-          width: 30%;
-          background-color: #f4f4f4;
-          box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-          flex-shrink: 0;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-        }
+      /* --- Top Bar (Revised) --- */
+      #top-bar {
+        width: 100%;
+        background-color: #f4f4f4;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        /* --- Project Selector --- */
-        #projectSelector {
-          padding: 10px;
-          border-bottom: 1px solid #ccc; /* separator line */
-        }
+      #top-bar-left {
+        width: 30%;
+        display: flex;
+        align-items: center;
+        gap: 10px; /* spacing between icon, label, select */
+        padding: 10px;
+        box-sizing: border-box;
+      }
 
-        /* --- File Tree --- */
-        #fileTree {
-          padding: 10px;
-          font-family: sans-serif;
-          font-size: 14px;
-          flex: 1; /* let the file tree fill remaining vertical space */
-          overflow-y: auto; /* scroll if it gets too tall */
-          margin: 0;
-        }
+      #top-bar-right {
+        width: 70%;
+        display: flex;
+        justify-content: space-between; /* left side for file display, right side for Save button */
+        align-items: center;
+        padding: 10px;
+        box-sizing: border-box;
+      }
 
-        #fileTree ul {
-          list-style-type: none; /* remove bullet points */
-          padding-left: 20px;    /* indentation for nested items */
-          margin: 0;
-        }
+      #companyLogo {
+        height: 30px; /* adjust as needed */
+      }
 
-        /* Folder and file icons (simple text icons) */
-        .folder::before {
-          content: "📁 ";
-        }
+      #saveButton {
+        font-size: 16px;
+      }
 
-        .file::before {
-          content: "📄 ";
-        }
+      /* --- Container & Columns --- */
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
 
-        /* Optional: to show/hide child lists (collapsible style) */
-        .hidden {
-          display: none;
-        }
-        
-        /* Remove default margins on the html/body */
-        html, body {
-          margin: 0;
-          padding: 0;
-          height: 100%;
-        }
+      #container {
+        display: flex;
+        /* Subtract top-bar height to fit screen: adjust as needed */
+        height: calc(100vh - 60px);
+        margin: 0;
+        padding: 0;
+      }
 
-        #container {
-          display: flex;
-          height: 100vh; /* Full viewport height */
-          margin: 0;
-          padding: 0;
-        }
+      /* --- Left Column --- */
+      #left-column {
+        width: 30%;
+        background-color: white; /* changed from #f4f4f4 */
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        flex-shrink: 0;
+        height: 98.5%;
+        margin: 0;
+        padding: 0 0 0 0; /* added bottom padding to align with right side editor */
+        display: flex;
+        flex-direction: column;
+      }
 
-        #right-column {
-          width: 70%;
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          margin: 0;
-          padding: 0;      /* Remove extra spacing so columns touch */
-          overflow: hidden;
-        }
+      /* --- File Tree --- */
+      #fileTree {
+        padding: 10px;
+        font-family: sans-serif;
+        font-size: 14px;
+        flex: 1;
+        overflow-y: auto;
+        margin: 0 0 2px 0; /* added bottom margin to align with editor */
+      }
+      #fileTree ul {
+        list-style-type: none;
+        padding-left: 20px;
+        margin: 0;
+      }
+      .folder::before {
+        content: "📁 ";
+      }
+      .file::before {
+        content: "📄 ";
+      }
+      .hidden {
+        display: none;
+      }
 
-        /* Position the file input in normal flow with optional margin */
-        #fileInput {
-          margin: 10px; /* Adjust or remove if you want zero spacing at top */
-        }
+      /* --- Right Column --- */
+      #right-column {
+        width: 70%;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
 
-        /* Optional: margin for the heading */
-        h1 {
-          margin: 10px;
-        }
+      /* Lock bar (remains in the right column) */
+      #lockBar {
+        display: none;
+        background-color: red;
+        color: white;
+        padding: 5px;
+        text-align: center;
+      }
 
-        /* Make the editor fill all remaining space in the right column */
-        #editor {
-          flex: 1;
-          border: 1px solid #ccc;
-          min-height: 0;  /* Allows the editor to shrink properly within a flex container */
-          margin: 0 10px 10px 2px; /* Some spacing around the editor; remove if not wanted */
-          box-sizing: border-box;
-          overflow: auto;      /* Let the editor itself scroll */
-        }
-
-        #editorContainer {
-          position: relative;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: auto;
-        }
-
-        .lockedEditor .cm-scroller,
-        .lockedEditor .cm-content {
-          background-color: lightgrey !important;
-        }
-      </style>
+      /* Editor Container */
+      #editorContainer {
+        position: relative;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+      }
+      #editor {
+        flex: 1;
+        border: 1px solid #ccc;
+        min-height: 0;
+        margin: 0 10px 10px 2px;
+        box-sizing: border-box;
+        overflow: auto;
+      }
+      .lockedEditor .cm-scroller,
+      .lockedEditor .cm-content {
+        background-color: lightgrey !important;
+      }
+      #editorOverlay {
+        display: none;
+        position: absolute;
+        top: 0; right: 0; bottom: 0; left: 0;
+        background-color: rgba(190,190,190,0.3);
+        pointer-events: none;
+        z-index: 10;
+      }
+    </style>
   </head>
   <body>
-    <div id="container">
-        <div id="left-column">
-          <!-- Project Selector Dropdown -->
-          <div id="projectSelector">
-            <label for="projectSelect">Select Project:</label>
-            <select id="projectSelect">
-              <option value="">Loading...</option>
-            </select>
-          </div>
+    <!-- Single top bar -->
+    <div id="top-bar">
+      <!-- Left: 30% -->
+      <div id="top-bar-left">
+        <!-- Company Icon (replace with your actual logo/path) -->
+        <img id="companyLogo" src="images/smart_grug.png" alt="Company Icon" />
+        <label for="projectSelect">Select Project:</label>
+        <select id="projectSelect">
+          <option value="">Loading...</option>
+        </select>
+      </div>
 
-          <!-- File Tree -->
-          <div id="fileTree">
-            <ul>
-              <li>
-                <span class="folder">~</span>
-              </li>
-            </ul>
-          </div>
+      <!-- Right: 70% -->
+      <div id="top-bar-right">
+        <p id="currentFileDisplay" style="font-size: 16px; margin: 0;">
+          No File Currently Selected
+        </p>
+        <button id="saveButton">Save</button>
+      </div>
+    </div>
+
+    <!-- The main container with two columns below the top bar -->
+    <div id="container">
+      <!-- Left Column: File Tree -->
+      <div id="left-column">
+        <div id="fileTree">
+          <ul>
+            <li>
+              <span class="folder">~</span>
+            </li>
+          </ul>
         </div>
-        <div id="right-column">
-          <div id="top-bar" style="display: flex; justify-content: space-between; align-items: center; margin: 10px;">
-            <p id="currentFileDisplay" style="font-size: 16px; margin: 0;">No File Currently Selected</p>
-            <button id="saveButton" style="font-size: 16px;">Save</button>
-          </div>
-          <div id="lockBar" style="display:none; background-color: red; color: white; padding: 5px; text-align: center;">
-            File is locked and is being reviewed by the Ai-Agent.
-          </div>
-          <div id="editorContainer">
-            <div id="editor" style="border: 1px solid #ccc; min-height: 300px; height: auto;"></div>
-            <div id="editorOverlay" style="display:none; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background-color: rgba(190,190,190,0.3); pointer-events: none; z-index: 10;"></div>
-          </div>
+      </div>
+
+      <!-- Right Column: Editor and Lock Bar -->
+      <div id="right-column">
+        <div id="lockBar">
+          File is locked and is being reviewed by the Ai-Agent.
         </div>
+
+        <!-- Editor Container -->
+        <div id="editorContainer">
+          <div id="editor"></div>
+          <div id="editorOverlay"></div>
+        </div>
+      </div>
     </div>
     <script type="module">
       import { EditorState } from "codemirror/state/dist/index.js";
