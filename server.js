@@ -13,7 +13,7 @@ const execPromise = util.promisify(exec);
 const app = express();
 const port = process.env.PORT || 3000;
 
-const fileTreePaths = ['/tmp', '/home/GOD', '/home/GOD/core'];
+const fileTreePaths = ['/tmp', '/home/GOD'];
 const containerList = ["mind_of_god", "image_of_god", "creation_of_god"];
 
 app.use(express.urlencoded({ extended: true }));
