@@ -236,7 +236,7 @@
               currentFile = filePath;
               const selectedContainer = document.getElementById("projectSelect").value;
               // Update the current file display text to include the container name
-              document.getElementById("currentFileDisplay").textContent = selectedContainer + ": " + filePath;
+              document.getElementById("currentFileDisplay").innerHTML = "<strong>" + selectedContainer + ":</strong> " + filePath;
               fetch("/get-docker-file?file=" + encodeURIComponent(filePath) + "&dockerId=" + encodeURIComponent(selectedContainer))
                 .then(response => response.text())
                 .then(fileContent => {
