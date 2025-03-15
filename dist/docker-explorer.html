@@ -338,11 +338,12 @@
         console.log('File synced Called');
         if (!currentFile || !isDirty) return;
         const currentDoc = view.state.doc.toString();
-        const selectedContainer = document.getElementById('projectSelect').value;
+        const currentFileDisplay = document.getElementById('currentFileDisplay');
+        const selectedFilesContainer = currentFileDisplay.querySelector('strong').textContent.replace(":", "").trim();
 
         const params = new URLSearchParams();
         params.append('file', currentFile);
-        params.append('dockerId', selectedContainer);
+        params.append('dockerId', selectedFilesContainer);
         params.append('content', currentDoc);
 
         fetch('/save-docker-file', {
@@ -354,7 +355,7 @@
             throw new Error('Failed to save file to Docker container');
           }
           originalContent = currentDoc;
-          console.log('File synced to container successfully');
+          console.log('File synced to container successfully: ' + selectedFilesContainer + " : " + currentFile);
           // On successful save, mark the file as not dirty
           isDirty = false;
         })
