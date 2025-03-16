@@ -28,6 +28,13 @@
 
           // Wrap only the client sync code in DOMContentLoaded to ensure the element exists.
           document.addEventListener("DOMContentLoaded", function() {
+            // Extract the file name from subscribedFile, removing paths and file extension.
+            let fileName = subscribedFile.split('/').pop();
+            if (fileName.indexOf('.') !== -1) {
+            fileName = fileName.substring(0, fileName.lastIndexOf('.'));
+            }
+            document.getElementById('top-bar-title').innerText = "Planning Agent: " + fileName;
+
             const markdownEl = document.getElementById('markdown');
             if (!markdownEl) {
               console.error("Element with id 'markdown' not found.");
@@ -42,6 +49,19 @@
             markdownEl.addEventListener('input', function() {
               pendingSync = true;
             });
+            function syncContentToServer(forceSync) {
+              const newContent = markdownEl.value;
+              if (newContent !== lastSyncedContent || forceSync) {
+                console.log('Syncing content back to server.');
+                socket.emit('markdown changed', { file: subscribedFile, content: newContent });
+                lastSyncedContent = newContent;
+              }
+              pendingSync = false;
+              pollInProgress = false;
+            }
+            document.getElementById('save-plan-button').addEventListener('click', function() {
+              syncContentToServer(true);
+            });
 
             setInterval(function() {
               // If a poll is already in progress, skip this cycle
@@ -54,6 +74,7 @@
                 .then(data => {
                   if (data.locked) {
                     document.getElementById('lock-dialog').style.display = 'flex';
+                    document.getElementById('save-plan-button').disabled = true;
                     // When locked, pull the server file and override local changes
                     fetch(`/get-file?file=${encodeURIComponent(subscribedFile)}`)
                       .then(response => response.text())
@@ -71,16 +92,10 @@
                       });
                   } else {
                     document.getElementById('lock-dialog').style.display = 'none';
+                    document.getElementById('save-plan-button').disabled = false;
                     // If no lock, check if there are user changes
                     if (pendingSync) {
-                      const newContent = markdownEl.value;
-                      if (newContent !== lastSyncedContent) {
-                        console.log('Syncing content back to server.');
-                        socket.emit('markdown changed', { file: subscribedFile, content: newContent });
-                        lastSyncedContent = newContent;
-                      }
-                      pendingSync = false;
-                      pollInProgress = false;
+                      syncContentToServer(false);
                     } else {
                       // No user changes, so pull file content to stay in sync
                       fetch(`/get-file?file=${encodeURIComponent(subscribedFile)}`)
@@ -110,6 +125,11 @@
         </script>
     </head>
     <body class="clearfix">
+        <div id="top-bar" style="display: flex; align-items: center; height: 45px; padding: 0 10px; background-color: #f5f5f5;">
+            <img src="images/smart_grug.png" alt="Company Icon" style="height: 30px;">
+            <div id="top-bar-title" style="flex: 1; text-align: center; font-size: 18px; font-weight: bold;">Planning Agent:</div>
+            <button id="save-plan-button" type="button">save-plan</button>
+        </div>
         <div id="left-column" style="position: relative;">
             <div id="top_panels_container">
                 <div class="top_panel" id="quick-reference">
