@@ -9,99 +9,280 @@
             "imports": { "codemirror/": "https://deno.land/x/codemirror_esm@v6.0.1/esm/" }
         }
     </script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-      /* --- Top Bar (Revised) --- */
-      #top-bar {
-        width: 100%;
-        background-color: #f4f4f4;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        display: flex;
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      /* Global Styles and Variables */
+      :root {
+        --primary-bg: #f9fafb;
+        --secondary-bg: #f3f4f6;
+        --hover-bg: rgba(59, 130, 246, 0.08);
+        --border-color: rgba(0, 0, 0, 0.05);
+        --box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.05);
+        --gradient-start: #f8fafc;
+        --gradient-end: #f1f5f9;
+        --accent-blue: #3b82f6;
+        --sidebar-width: 30%;
+        --main-width: 70%;
+        --text-black: #000;
+        --text-gray: #6b7280;
+        --active-item-border: 3px solid #3b82f6;
       }
 
-      #top-bar-left {
-        width: 30%;
-        display: flex;
-        align-items: center;
-        gap: 10px; /* spacing between icon, label, select */
-        padding: 10px;
-        box-sizing: border-box;
-      }
-
-      #top-bar-right {
-        width: 70%;
-        display: flex;
-        justify-content: space-between; /* left side for file display, right side for Save button */
-        align-items: center;
-        padding: 10px;
-        box-sizing: border-box;
-      }
-
-      #companyLogo {
-        height: 30px; /* adjust as needed */
-      }
-
-      #saveButton {
-        font-size: 16px;
-      }
-
-      /* --- Container & Columns --- */
+      /* Base Styles */
       html, body {
         margin: 0;
         padding: 0;
         height: 100%;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
 
+      /* Top Bar Styling */
+      #top-bar {
+        width: 100%;
+        background: linear-gradient(to bottom, var(--gradient-start), var(--gradient-end));
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        margin: 0;
+        padding: 8px 0;
+        box-sizing: border-box;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      #top-bar-left {
+        width: var(--sidebar-width);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 16px;
+        box-sizing: border-box;
+      }
+
+      #top-bar-right {
+        width: var(--main-width);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 16px;
+        box-sizing: border-box;
+      }
+
+      /* Volume Selector Styling */
+      .volume-selector {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background-color: white;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        padding: 6px 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        cursor: pointer;
+      }
+
+      .volume-selector-icon {
+        margin-right: 8px;
+        color: var(--text-gray);
+      }
+
+      #projectSelect {
+        background: transparent;
+        border: none;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: inherit;
+        appearance: none; /* Remove default arrow */
+        cursor: pointer;
+        padding-right: 24px; /* Space for the dropdown arrow */
+        width: 100%;
+      }
+      
+      #projectSelect:focus {
+        outline: none;
+      }
+
+      .volume-selector-arrow {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-gray);
+        pointer-events: none; /* Don't interfere with select clicks */
+      }
+
+      #saveButton {
+        padding: 6px 16px;
+        border-radius: 6px;
+        border: none;
+        background: linear-gradient(to right, #3b82f6, #60a5fa);
+        color: white;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+      }
+
+      #saveButton i {
+        margin-right: 8px; /* Add spacing between icon and text */
+      }
+
+      #saveButton:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+
+      #saveButton:disabled {
+        background: #cbd5e1;
+        cursor: not-allowed;
+      }
+
+      /* Main Container */
       #container {
         display: flex;
-        /* Subtract top-bar height to fit screen: adjust as needed */
         height: calc(100vh - 60px);
         margin: 0;
         padding: 0;
+        background-color: var(--primary-bg);
       }
 
-      /* --- Left Column --- */
+      /* Left Column / Sidebar */
       #left-column {
-        width: 30%;
-        background-color: white; /* changed from #f4f4f4 */
-        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        width: var(--sidebar-width);
+        background: linear-gradient(to bottom, var(--gradient-start), var(--gradient-end));
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
         flex-shrink: 0;
-        height: 98.5%;
+        height: 100%;
         margin: 0;
-        padding: 0 0 0 0; /* added bottom padding to align with right side editor */
+        padding: 0;
         display: flex;
         flex-direction: column;
+        border-right: 1px solid var(--border-color);
       }
 
-      /* --- File Tree --- */
+      /* Project Files Header */
+      .section-header {
+        padding: 12px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-black);
+      }
+
+      /* File Tree */
       #fileTree {
-        padding: 10px;
-        font-family: sans-serif;
+        padding: 0 16px 16px;
         font-size: 14px;
         flex: 1;
         overflow-y: auto;
-        margin: 0 0 2px 0; /* added bottom margin to align with editor */
       }
+
       #fileTree ul {
         list-style-type: none;
         padding-left: 20px;
         margin: 0;
       }
-      .folder::before {
-        content: "📁 ";
+
+      #fileTree li {
+        margin: 4px 0;
       }
-      .file::before {
-        content: "📄 ";
+
+      .folder, .file {
+        display: flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
       }
+
+      .folder:hover, .file:hover {
+        background-color: rgba(0, 0, 0, 0.03);
+      }
+
+      .folder i, .file i {
+        margin-right: 8px;
+        width: 16px;
+        text-align: center;
+      }
+
+      .folder i {
+        color: var(--accent-blue);
+      }
+
+      .file i {
+        color: var(--text-gray);
+      }
+
+      /* File type specific icons */
+      .file.js i {
+        color: #f7df1e; /* JavaScript yellow */
+      }
+
+      .file.html i, .file.htm i {
+        color: #e34c26; /* HTML orange */
+      }
+
+      .file.css i {
+        color: #264de4; /* CSS blue */
+      }
+
+      .file.json i {
+        color: #8b5cf6; /* JSON purple */
+      }
+
+      .file.md i {
+        color: #3b82f6; /* Markdown blue */
+      }
+
+      .file.txt i {
+        color: #6b7280; /* Gray */
+      }
+
+      .file.log i {
+        color: #6b7280; /* Gray */
+      }
+
+      .file.sh i {
+        color: #10b981; /* Green */
+      }
+
+      .file.selected {
+        background-color: var(--hover-bg);
+        border-left: var(--active-item-border);
+      }
+
       .hidden {
         display: none;
       }
 
-      /* --- Right Column --- */
+      /* Storage status bar */
+      #storage-status {
+        margin-top: auto;
+        padding: 16px;
+        border-top: 1px solid var(--border-color);
+        font-size: 12px;
+      }
+
+      #storage-bar {
+        height: 6px;
+        background-color: #e2e8f0;
+        border-radius: 3px;
+        margin-top: 6px;
+        margin-bottom: 4px;
+      }
+
+      #storage-used {
+        height: 100%;
+        width: 25%; /* This would be dynamic based on actual usage */
+        background: linear-gradient(to right, var(--accent-blue), #60a5fa);
+        border-radius: 3px;
+      }
+
+      /* Right Column / Editor Area */
       #right-column {
-        width: 70%;
+        width: var(--main-width);
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -110,13 +291,14 @@
         overflow: hidden;
       }
 
-      /* Lock bar (remains in the right column) */
+      /* Lock Bar */
       #lockBar {
         display: none;
-        background-color: red;
+        background-color: #ef4444; /* red-500 */
         color: white;
-        padding: 5px;
+        padding: 8px 16px;
         text-align: center;
+        font-size: 14px;
       }
 
       /* Editor Container */
@@ -126,68 +308,115 @@
         display: flex;
         flex-direction: column;
         overflow: auto;
+        background-color: white;
       }
+
       #editor {
         flex: 1;
-        border: 1px solid #ccc;
+        border: 1px solid #e2e8f0;
         min-height: 0;
-        margin: 0 10px 10px 2px;
+        margin: 8px;
+        border-radius: 8px;
         box-sizing: border-box;
         overflow: auto;
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       }
-      .lockedEditor .cm-scroller,
-      .lockedEditor .cm-content {
-        background-color: lightgrey !important;
-      }
+
       #editorOverlay {
         display: none;
         position: absolute;
         top: 0; right: 0; bottom: 0; left: 0;
-        background-color: rgba(190,190,190,0.3);
+        background-color: rgba(243, 244, 246, 0.7);
         pointer-events: none;
         z-index: 10;
+        border-radius: 8px;
+        margin: 8px;
+      }
+
+      /* Status bar */
+      #status-bar {
+        padding: 8px 16px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--text-gray);
+        background-color: var(--secondary-bg);
+        border-top: 1px solid var(--border-color);
+      }
+
+      /* CM editor customizations */
+      .cm-editor {
+        height: 100%;
+      }
+
+      .cm-scroller {
+        font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+        line-height: 1.5;
+        font-size: 14px;
+      }
+
+      .cm-gutters {
+        border-right: 1px solid #e2e8f0;
+        background-color: #f8fafc;
+      }
+
+      .cm-activeLineGutter {
+        background-color: rgba(59, 130, 246, 0.05);
       }
     </style>
   </head>
   <body>
-    <!-- Single top bar -->
+    <!-- Top Bar -->
     <div id="top-bar">
-      <!-- Left: 30% -->
+      <!-- Left side (30%) -->
       <div id="top-bar-left">
-        <!-- Company Icon (replace with your actual logo/path) -->
-        <img id="companyLogo" src="images/smart_grug.png" alt="Company Icon" />
-        <label for="projectSelect">Select Project:</label>
-        <select id="projectSelect">
-          <option value="">Loading...</option>
-        </select>
-      </div>
-
-      <!-- Right: 70% -->
-      <div id="top-bar-right">
-        <p id="currentFileDisplay" style="font-size: 16px; margin: 0;">
-          No File Currently Selected
-        </p>
-        <button id="saveButton">Save</button>
-      </div>
-    </div>
-
-    <!-- The main container with two columns below the top bar -->
-    <div id="container">
-      <!-- Left Column: File Tree -->
-      <div id="left-column">
-        <div id="fileTree">
-          <ul>
-            <li>
-              <span class="folder">~</span>
-            </li>
-          </ul>
+        <div class="volume-selector">
+          <i class="fas fa-hdd volume-selector-icon"></i>
+          <select id="projectSelect">
+            <option value="">Loading...</option>
+          </select>
+          <i class="fas fa-chevron-down volume-selector-arrow"></i>
         </div>
       </div>
 
-      <!-- Right Column: Editor and Lock Bar -->
+      <!-- Right side (70%) -->
+      <div id="top-bar-right">
+        <p id="currentFileDisplay" style="font-size: 14px; margin: 0;">
+          No File Currently Selected
+        </p>
+        <button id="saveButton"><i class="fas fa-save"></i>Save</button>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="container">
+      <!-- Left Column: File Tree -->
+      <div id="left-column">
+        <div class="section-header">PROJECT FILES</div>
+        <div id="fileTree">
+          <ul>
+            <li>
+              <span class="folder"><i class="fas fa-folder"></i>~</span>
+            </li>
+          </ul>
+        </div>
+        <div id="storage-status">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <div>Storage: 25% used</div>
+            <div>2 GB of 8 GB</div>
+          </div>
+          <div id="storage-bar">
+            <div id="storage-used" style="width: 25%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Editor -->
       <div id="right-column">
+        <!-- Lock Bar -->
         <div id="lockBar">
-          File is locked and is being reviewed by the Ai-Agent.
+          <i class="fas fa-lock"></i> File is locked and is being reviewed by the Ai-Agent.
         </div>
 
         <!-- Editor Container -->
@@ -195,8 +424,15 @@
           <div id="editor"></div>
           <div id="editorOverlay"></div>
         </div>
+
+        <!-- Status Bar -->
+        <div id="status-bar">
+          <div>Ready</div>
+          <div>UTF-8 | LF</div>
+        </div>
       </div>
     </div>
+
     <script type="module">
       import { EditorState } from "codemirror/state/dist/index.js";
       import { EditorView, basicSetup } from "codemirror/codemirror/dist/index.js";
@@ -211,203 +447,475 @@
       import { markdown } from "codemirror/lang-markdown/dist/index.js";
       import { sql } from "codemirror/lang-sql/dist/index.js";
       
-      let originalContent = "";
-      let isDirty = false;
-      let currentFile = null;
-      let isLocked = false;
-
+      // App state
+      const state = {
+        originalContent: "",
+        isDirty: false,
+        currentFile: null,
+        isLocked: false
+      };
+      
+      // File type mapping
+      const fileTypeMap = {
+        js: { icon: 'fa-file-code', color: '#f7df1e', lang: javascript },
+        html: { icon: 'fa-file-code', color: '#e34c26', lang: html },
+        htm: { icon: 'fa-file-code', color: '#e34c26', lang: html },
+        css: { icon: 'fa-file-code', color: '#264de4', lang: css },
+        json: { icon: 'fa-file-code', color: '#8b5cf6', lang: json },
+        java: { icon: 'fa-file-code', color: '#b07219', lang: java },
+        py: { icon: 'fa-file-code', color: '#3572A5', lang: python },
+        xml: { icon: 'fa-file-code', color: '#e34c26', lang: xml },
+        php: { icon: 'fa-file-code', color: '#787CB5', lang: php },
+        md: { icon: 'fa-file-alt', color: '#3b82f6', lang: markdown },
+        txt: { icon: 'fa-file-alt', color: '#6b7280', lang: null },
+        log: { icon: 'fa-file-alt', color: '#6b7280', lang: null },
+        sh: { icon: 'fa-terminal', color: '#10b981', lang: null },
+        sql: { icon: 'fa-database', color: '#336791', lang: sql }
+      };
+      
+      // Default type for unrecognized files
+      const defaultFileType = { icon: 'fa-file', color: '#6b7280', lang: null };
+      
       // Create an initial empty editor
       const updateListener = EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           const currentDoc = view.state.doc.toString();
-          isDirty = (currentDoc !== originalContent);
+          state.isDirty = (currentDoc !== state.originalContent);
         }
       });
-      const state = EditorState.create({
-        doc: "",
-        extensions: [basicSetup, javascript(), html(), json(), java(), python(), xml(), css(), php(), markdown(), sql(),
-                      updateListener,
-                      EditorView.editable.of(true) ]
+      
+      // Define editor theme once
+      const editorTheme = EditorView.theme({
+        "&": {
+          height: "100%",
+        },
+        ".cm-scroller": {
+          fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+          fontSize: "14px"
+        },
+        ".cm-gutters": {
+          backgroundColor: "#f8fafc",
+          color: "#94a3b8",
+          border: "none"
+        },
+        ".cm-activeLineGutter": {
+          backgroundColor: "rgba(59, 130, 246, 0.05)"
+        },
+        ".cm-activeLine": {
+          backgroundColor: "rgba(59, 130, 246, 0.05)"
+        }
       });
+      
+      // Configure the editor with all available languages
+      const editorState = EditorState.create({
+        doc: "",
+        extensions: [
+          basicSetup,
+          javascript(), html(), json(), java(), python(), xml(), css(), php(), markdown(), sql(),
+          updateListener,
+          EditorView.editable.of(true),
+          editorTheme
+        ]
+      });
+      
+      // Create the editor view
       const view = new EditorView({
-        state,
+        state: editorState,
         parent: document.getElementById("editor")
       });
 
-      document.addEventListener("DOMContentLoaded", () => {
-        // Fetch container list from the server and populate the project select dropdown
-        fetch('/get-container-list')
-          .then(response => response.json())
-          .then(containerList => {
-            const select = document.getElementById('projectSelect');
-            // Clear existing options
-            select.innerHTML = '';
-            containerList.forEach(container => {
-              const option = document.createElement('option');
-              option.value = container;
-              option.textContent = container;
-              select.appendChild(option);
+      // Helper Functions
+      
+      // Get file type information based on extension
+      function getFileType(fileName) {
+        const ext = fileName.split('.').pop().toLowerCase();
+        return fileTypeMap[ext] || defaultFileType;
+      }
+      
+      // Get currently selected container
+      function getSelectedContainer() {
+        return document.getElementById("projectSelect").value;
+      }
+      
+      // Update the UI with information about the current file
+      function updateFileInfo(filePath, lineCount, charCount, additionalInfo = '') {
+        if (!filePath) {
+          document.getElementById("currentFileDisplay").textContent = "No File Currently Selected";
+          document.querySelector('#status-bar div:first-child').textContent = 'Ready';
+          return;
+        }
+        
+        const fileName = filePath.split('/').pop();
+        const selectedContainer = getSelectedContainer();
+        
+        // Update file display
+        document.getElementById("currentFileDisplay").innerHTML = 
+          `<strong>${selectedContainer}:</strong> ${filePath}`;
+        
+        // Update status bar
+        const statusInfo = `${fileName} - ${lineCount} Lines - ${charCount} characters${additionalInfo ? ' | ' + additionalInfo : ''}`;
+        document.querySelector('#status-bar div:first-child').textContent = statusInfo;
+      }
+      
+      // Reset editor state
+      function resetEditor() {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: "" }
+        });
+        
+        state.currentFile = null;
+        state.isDirty = false;
+        state.originalContent = "";
+        
+        updateFileInfo(null);
+      }
+      
+      // Update editor content with new text
+      function updateEditorContent(content) {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: content }
+        });
+        
+        state.originalContent = content;
+        state.isDirty = false;
+        
+        // Count lines and characters
+        const lineCount = content.split('\n').length;
+        
+        updateFileInfo(state.currentFile, lineCount, content.length);
+      }
+      
+      // Apply icon to file or folder element
+      function applyIcon(element, isFolder, fileName) {
+        // Clear the element
+        while (element.firstChild) {
+          element.removeChild(element.firstChild);
+        }
+        
+        // Create icon element
+        const iconElement = document.createElement('i');
+        
+        if (isFolder) {
+          iconElement.className = 'fas fa-folder';
+        } else {
+          const fileType = getFileType(fileName);
+          iconElement.className = `fas ${fileType.icon}`;
+          // Add file type class for styling
+          const fileExt = fileName.split('.').pop().toLowerCase();
+          if (fileExt) {
+            element.classList.add(fileExt);
+          }
+        }
+        
+        // Add icon and text content
+        element.appendChild(iconElement);
+        element.appendChild(document.createTextNode(fileName));
+        
+        // If file, store the full path as an attribute
+        if (!isFolder) {
+          element.setAttribute("data-file-path", fileName);
+        }
+      }
+      
+      // Process file tree to add proper icons and classes
+      function processFileTreeHTML() {
+        // Process folders
+        document.querySelectorAll('#fileTree .folder').forEach(folder => {
+          const textContent = folder.textContent.trim();
+          applyIcon(folder, true, textContent);
+        });
+        
+        // Process files
+        document.querySelectorAll('#fileTree .file').forEach(file => {
+          const filePath = file.getAttribute("data-file-path") || file.textContent.trim();
+          const fileName = filePath.split("/").pop() || filePath;
+          applyIcon(file, false, fileName);
+          
+          // Store the full path as an attribute
+          file.setAttribute("data-file-path", filePath);
+        });
+      }
+      
+      // Attach event listeners to file tree elements
+      function attachFileTreeListeners() {
+        // Folder click handlers
+        document.querySelectorAll("#fileTree .folder").forEach(folder => {
+          folder.addEventListener("click", (e) => {
+            e.stopPropagation();
+            folder.classList.toggle('expanded');
+            
+            // Toggle the folder icon between closed and open
+            const folderIcon = folder.querySelector('i');
+            if (folderIcon) {
+              folderIcon.classList.toggle('fa-folder');
+              folderIcon.classList.toggle('fa-folder-open');
+            }
+            
+            const childUl = folder.parentElement.querySelector("ul");
+            if (childUl) {
+              childUl.classList.toggle("hidden");
+            }
+          });
+        });
+        
+        // File click handlers
+        document.querySelectorAll("#fileTree .file").forEach(fileSpan => {
+          fileSpan.addEventListener("click", (e) => {
+            e.stopPropagation();
+            
+            // Remove selected class from all files
+            document.querySelectorAll("#fileTree .file").forEach(f => {
+              f.classList.remove('selected');
             });
-            // If container list is not empty, default to the first container and update the file tree
-            if (containerList.length > 0) {
-              select.value = containerList[0];
-              updateFileTree();
+            
+            // Add selected class to clicked file
+            fileSpan.classList.add('selected');
+            
+            const filePath = fileSpan.getAttribute("data-file-path");
+            if (!filePath) {
+              console.warn("No file path found, skipping load.");
+              return;
+            }
+            
+            loadFile(filePath);
+          });
+        });
+      }
+      
+      // Function to load a file into the editor
+      function loadFile(filePath) {
+        if (!filePath) {
+          console.warn("Cannot load file: No file path provided");
+          return;
+        }
+        
+        // Update the current file reference
+        state.currentFile = filePath;
+        const selectedContainer = getSelectedContainer();
+        
+        // Fetch the file content
+        fetch(`/get-docker-file?file=${encodeURIComponent(filePath)}&dockerId=${encodeURIComponent(selectedContainer)}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+            return response.text();
+          })
+          .then(fileContent => {
+            updateEditorContent(fileContent);
+          })
+          .catch(error => {
+            console.error("Error loading file:", error);
+            updateFileInfo(filePath, 0, 0, "Error loading file");
+          });
+      }
+      
+      // Update the file tree
+      function updateFileTree() {
+        const selectedContainer = getSelectedContainer();
+        
+        if (!selectedContainer) {
+          console.warn("No container selected, skipping file tree update");
+          return;
+        }
+        
+        fetch(`/get-file-tree-html?container=${encodeURIComponent(selectedContainer)}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+            return response.text();
+          })
+          .then(htmlSnippet => {
+            document.getElementById("fileTree").innerHTML = htmlSnippet;
+            console.log("File tree updated successfully.");
+            
+            processFileTreeHTML();
+            attachFileTreeListeners();
+          })
+          .catch(error => {
+            console.error("Error fetching file tree:", error);
+            document.getElementById("fileTree").innerHTML = '<div class="error">Error loading file tree</div>';
+          });
+      }
+      
+      // Check for file lock status
+      function checkLockStatus() {
+        fetch('/lock-status')
+          .then(response => response.json())
+          .then(data => {
+            // Handle lock status change
+            handleLockStatusChange(data.locked);
+          })
+          .catch(err => console.error('Error checking lock status:', err));
+      }
+      
+      // Handle changes in lock status
+      function handleLockStatusChange(locked) {
+        if (locked === state.isLocked) {
+          // No change in status
+          return;
+        }
+        
+        if (locked) {
+          // File was just locked
+          state.isLocked = true;
+          document.getElementById('lockBar').style.display = 'block';
+          document.getElementById('editorOverlay').style.display = 'block';
+          document.getElementById('saveButton').disabled = true;
+          
+          // Refresh file tree and current file content
+          updateFileTree();
+          refreshCurrentFile();
+        } else {
+          // File was just unlocked
+          state.isLocked = false;
+          document.getElementById('lockBar').style.display = 'none';
+          document.getElementById('editorOverlay').style.display = 'none';
+          document.getElementById('saveButton').disabled = false;
+          
+          // Sync changes if dirty
+          syncIfDirty();
+        }
+      }
+      
+      // Refresh the current file content
+      function refreshCurrentFile() {
+        if (!state.currentFile) {
+          return;
+        }
+        
+        const selectedContainer = getSelectedContainer();
+        
+        fetch(`/get-docker-file?file=${encodeURIComponent(state.currentFile)}&dockerId=${encodeURIComponent(selectedContainer)}`)
+          .then(response => response.text())
+          .then(fetchedContent => {
+            const currentContent = view.state.doc.toString();
+            if (currentContent !== fetchedContent) {
+              // Save scroll position
+              const scrollPos = view.scrollDOM.scrollTop;
+              
+              // Update content
+              updateEditorContent(fetchedContent);
+              
+              // Restore scroll position
+              view.scrollDOM.scrollTop = scrollPos;
+              console.log('Editor content updated due to file lock.');
             }
           })
-          .catch(err => console.error('Error fetching container list:', err));
-
-        view.dom.addEventListener("beforeinput", (e) => {
-          if (isLocked) {
-            e.preventDefault();
-          }
-        });
-
-        // Define helper function to attach file tree listeners
-        function attachFileTreeListeners() {
-          document.querySelectorAll("#fileTree .folder").forEach(folder => {
-            folder.addEventListener("click", (e) => {
-              e.stopPropagation();
-              const childUl = folder.parentElement.querySelector("ul");
-              if (childUl) {
-                childUl.classList.toggle("hidden");
-              }
-            });
-          });
-          document.querySelectorAll("#fileTree .file").forEach(fileSpan => {
-            const fullPath = fileSpan.getAttribute("data-file-path") || fileSpan.textContent.trim();
-            const baseName = fullPath.split("/").pop() || fullPath;
-            fileSpan.textContent = baseName;
-            fileSpan.setAttribute("data-file-path", fullPath);
-            fileSpan.addEventListener("click", (e) => {
-              e.stopPropagation();
-              const filePath = fileSpan.getAttribute("data-file-path");
-              if (!filePath) {
-                console.warn("No file selected, skipping load.");
-                return;
-              }
-              // Update the global variable to store the current file
-              currentFile = filePath;
-              const selectedContainer = document.getElementById("projectSelect").value;
-              // Update the current file display text to include the container name
-              document.getElementById("currentFileDisplay").innerHTML = "<strong>" + selectedContainer + ":</strong> " + filePath;
-              fetch("/get-docker-file?file=" + encodeURIComponent(filePath) + "&dockerId=" + encodeURIComponent(selectedContainer))
-                .then(response => response.text())
-                .then(fileContent => {
-                  originalContent = fileContent;
-                  isDirty = false;
-                  view.dispatch({
-                    changes: { from: 0, to: view.state.doc.length, insert: fileContent }
-                  });
-                  console.log("File content loaded successfully for:", filePath);
-                })
-                .catch(error => console.error("Error fetching file content for", filePath, ":", error));
-            });
-          });
-        }
-
-        // Function to update the file tree
-        function updateFileTree() {
-          const selectedContainer = document.getElementById("projectSelect").value;
-          fetch("/get-file-tree-html?container=" + encodeURIComponent(selectedContainer))
-            .then(response => response.text())
-            .then(htmlSnippet => {
-              document.getElementById("fileTree").innerHTML = htmlSnippet;
-              console.log("File tree updated successfully.");
-              attachFileTreeListeners();
-            })
-            .catch(error => console.error("Error fetching file tree HTML:", error));
-        }
-
-        // Update file tree on project selection change
-        document.getElementById("projectSelect").addEventListener("change", () => {
-          updateFileTree();
-          console.log("File tree updated successfully on container change.");
-        });
-        // Poll for file lock status every 3 seconds
-        setInterval(() => {
-          fetch('/lock-status')
-            .then(response => response.json())
-            .then(data => {
-              if (data.locked) {
-                if (!isLocked) {
-                  isLocked = true;
-                  console.log('File is locked, updating UI to read-only.');
-                  // Show the red lock bar
-                  document.getElementById('lockBar').style.display = 'block';
-                  // Show the light grey overlay on the editor
-                  document.getElementById('editorOverlay').style.display = 'block';
-                  document.getElementById('saveButton').disabled = true;
-                  updateFileTree();
-                  if (currentFile) {
-                    const selectedContainer = document.getElementById('projectSelect').value;
-                    fetch("/get-docker-file?file=" + encodeURIComponent(currentFile) + "&dockerId=" + encodeURIComponent(selectedContainer))
-                      .then(response => response.text())
-                      .then(fetchedContent => {
-                        const currentContent = view.state.doc.toString();
-                        if (currentContent !== fetchedContent) {
-                          const scrollPos = view.scrollDOM.scrollTop;
-                          view.dispatch({
-                            changes: { from: 0, to: view.state.doc.length, insert: fetchedContent }
-                          });
-                          view.scrollDOM.scrollTop = scrollPos;
-                          console.log('Editor content updated due to file lock.');
-                        } else {
-                          console.log('No changes detected in editor content.');
-                        }
-                      })
-                      .catch(err => console.error('Error fetching file content during lock check:', err));
-                  } else {
-                    console.warn('No file selected; skipping file update during lock check.');
-                  }
-                }
-              } else {
-                if (isLocked) {
-                  isLocked = false;
-                  console.log('File is unlocked, restoring editor.');
-                  document.getElementById('lockBar').style.display = 'none';
-                  document.getElementById('editorOverlay').style.display = 'none';
-                  document.getElementById('saveButton').disabled = false;
-                }
-                console.log('File synced is going to be call next');
-                syncIfDirty();
-              }
-            })
-            .catch(err => console.error('Error checking lock status:', err));
-        }, 3000);
-
-        document.getElementById('saveButton').addEventListener('click', () => {
-          isDirty = true;
-          syncIfDirty();
-        });
-      });
-
+          .catch(err => console.error('Error refreshing file content:', err));
+      }
+      
+      // Function to sync file changes if dirty
       function syncIfDirty() {
-        console.log('File synced Called');
-        if (!currentFile || !isDirty) return;
+        if (!state.currentFile || !state.isDirty) return;
+        
         const currentDoc = view.state.doc.toString();
-        const currentFileDisplay = document.getElementById('currentFileDisplay');
-        const selectedFilesContainer = currentFileDisplay.querySelector('strong').textContent.replace(":", "").trim();
-
+        const selectedContainer = getSelectedContainer();
+        
         const params = new URLSearchParams();
-        params.append('file', currentFile);
-        params.append('dockerId', selectedFilesContainer);
+        params.append('file', state.currentFile);
+        params.append('dockerId', selectedContainer);
         params.append('content', currentDoc);
-
+        
         fetch('/save-docker-file', {
           method: 'POST',
           body: params
         })
         .then(response => {
           if (!response.ok) {
-            throw new Error('Failed to save file to Docker container');
+            throw new Error(`Failed to save file: ${response.statusText}`);
           }
-          originalContent = currentDoc;
-          console.log('File synced to container successfully: ' + selectedFilesContainer + " : " + currentFile);
-          // On successful save, mark the file as not dirty
-          isDirty = false;
+          
+          state.originalContent = currentDoc;
+          state.isDirty = false;
+          console.log(`File synced to container successfully: ${selectedContainer} : ${state.currentFile}`);
+          
+          // Count number of lines in the file
+          const lineCount = currentDoc.split('\n').length;
+          
+          // Update the status bar
+          updateFileInfo(state.currentFile, lineCount, currentDoc.length, "Saved");
         })
-        .catch(err => console.error('Error syncing file to container:', err));
+        .catch(err => {
+          console.error('Error syncing file to container:', err);
+          updateFileInfo(state.currentFile, 0, 0, "Error saving file");
+        });
       }
+      
+      // Initialize the application
+      function initApp() {
+        // Fetch container list
+        fetch('/get-container-list')
+          .then(response => response.json())
+          .then(containerList => {
+            const select = document.getElementById('projectSelect');
+            // Clear existing options
+            select.innerHTML = '';
+            
+            if (containerList.length === 0) {
+              // Handle empty container list
+              const option = document.createElement('option');
+              option.value = "";
+              option.textContent = "No containers available";
+              select.appendChild(option);
+              return;
+            }
+            
+            // Populate container options
+            containerList.forEach(container => {
+              const option = document.createElement('option');
+              option.value = container;
+              option.textContent = container;
+              select.appendChild(option);
+            });
+            
+            // Default to first container
+            select.value = containerList[0];
+            updateFileTree();
+          })
+          .catch(err => {
+            console.error('Error fetching container list:', err);
+            const select = document.getElementById('projectSelect');
+            select.innerHTML = '<option value="">Error loading containers</option>';
+          });
+        
+        // Prevent input if file is locked
+        view.dom.addEventListener("beforeinput", (e) => {
+          if (state.isLocked) {
+            e.preventDefault();
+          }
+        });
+        
+        // Update file tree on project selection change
+        document.getElementById("projectSelect").addEventListener("change", () => {
+          resetEditor();
+          updateFileTree();
+        });
+        
+        // Save button click handler
+        document.getElementById('saveButton').addEventListener('click', () => {
+          // Change button text to "Saving..."
+          const saveButton = document.getElementById('saveButton');
+          const originalText = saveButton.innerHTML;
+          saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Saving...';
+          
+          // Set dirty flag to trigger save
+          state.isDirty = true;
+          syncIfDirty();
+          
+          // After 500ms, restore the original button text
+          setTimeout(() => {
+            saveButton.innerHTML = originalText;
+          }, 500);
+        });
+        
+        // Set up periodic polling for lock status
+        setInterval(checkLockStatus, 3000);
+      }
+      
+      // Initialize when DOM is loaded
+      document.addEventListener("DOMContentLoaded", initApp);
     </script>
   </body>
 </html>
